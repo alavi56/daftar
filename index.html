@@ -1,11 +1,517 @@
 <!DOCTYPE html>
-<html>
+<html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>Habit App</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karsaz Pro</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Vazirmatn', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; }
+        .hidden { display: none !important; }
+
+        @media print {
+            body, .bg-slate-800 { background: white !important; color: black !important; }
+            #print-area, #print-area *, .text-slate-200, .text-slate-400, .text-slate-300, h1, h2, h3, p, span, div { visibility: visible; color: black !important; }
+            #app-section, #auth-section, .no-print { visibility: hidden !important; display: none !important; }
+            #print-area-container { display: block !important; visibility: visible !important; }
+        }
+    </style>
 </head>
-<body>
-  <h1>سلام Habit!</h1>
-  <p>سایتت با موفقیت روی GitHub Pages ساخته شد.</p>
+<body class="bg-slate-900 text-slate-200 min-h-screen transition-all">
+
+    <div id="auth-section" class="flex items-center justify-center min-h-screen p-4">
+        <div class="w-full max-w-sm">
+            <form id="loginForm" class="bg-slate-800 shadow-2xl rounded-2xl px-8 pt-6 pb-8 mb-4 border border-slate-700">
+                <h1 class="text-2xl font-bold text-center text-white mb-6" data-translate-key="loginTitle"></h1>
+                <div id="auth-error" class="bg-red-800 border border-red-600 text-red-200 px-4 py-2 rounded-lg relative mb-4 hidden"></div>
+                <div class="mb-4">
+                    <label class="block text-slate-300 text-sm font-bold mb-2" for="username" data-translate-key="username"></label>
+                    <input class="shadow appearance-none border rounded w-full py-2 px-3 bg-slate-700 border-slate-600 text-slate-200 leading-tight focus:outline-none focus:shadow-outline" id="username" type="text" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-slate-300 text-sm font-bold mb-2" for="password" data-translate-key="password"></label>
+                    <input class="shadow appearance-none border rounded w-full py-2 px-3 bg-slate-700 border-slate-600 text-slate-200 mb-3 leading-tight focus:outline-none focus:shadow-outline" id="password" type="password" required>
+                </div>
+                <button class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline w-full" type="submit" data-translate-key="loginBtn"></button>
+                <p class="text-center text-slate-400 text-xs mt-4">
+                    <a id="showRegister" class="cursor-pointer hover:text-cyan-400" data-translate-key="signupPrompt"></a>
+                </p>
+            </form>
+            <form id="registerForm" class="bg-slate-800 shadow-2xl rounded-2xl px-8 pt-6 pb-8 mb-4 border border-slate-700 hidden">
+                 <h1 class="text-2xl font-bold text-center text-white mb-6" data-translate-key="registerTitle"></h1>
+                 <div id="register-error" class="bg-red-800 border border-red-600 text-red-200 px-4 py-2 rounded-lg relative mb-4 hidden"></div>
+                 <div class="mb-4">
+                    <label class="block text-slate-300 text-sm font-bold mb-2" for="regUsername" data-translate-key="username"></label>
+                    <input class="shadow appearance-none border rounded w-full py-2 px-3 bg-slate-700 border-slate-600 text-slate-200 leading-tight" id="regUsername" type="text" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-slate-300 text-sm font-bold mb-2" for="regPassword" data-translate-key="password"></label>
+                    <input class="shadow appearance-none border rounded w-full py-2 px-3 bg-slate-700 border-slate-600 text-slate-200 mb-3 leading-tight" id="regPassword" type="password" required>
+                </div>
+                 <button class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg w-full" type="submit" data-translate-key="registerBtn"></button>
+                 <p class="text-center text-slate-400 text-xs mt-4">
+                    <a id="showLogin" class="cursor-pointer hover:text-cyan-400" data-translate-key="loginPrompt"></a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <div id="app-section" class="w-full max-w-7xl mx-auto p-4 hidden">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 no-print">
+            <div class="flex items-center gap-4">
+                <img id="user-logo" src="" alt="Logo" class="h-12 w-12 rounded-full object-cover hidden">
+                <div>
+                    <h1 id="user-company-name" class="text-3xl font-bold text-slate-100">Karsaz Pro</h1>
+                    <p class="text-xs text-cyan-400 mt-1"><span data-translate-key="currentUser"></span> <span id="currentUserDisplay"></span></p>
+                </div>
+            </div>
+             <div class="flex items-center gap-2 bg-slate-800/50 border border-slate-700 rounded-2xl p-3 backdrop-blur-sm">
+                <div class="text-center px-4">
+                    <div id="liveDate" class="text-sm font-semibold text-slate-300"></div>
+                    <div id="liveTime" class="text-2xl font-mono text-cyan-400 tracking-widest mt-1"></div>
+                </div>
+                <div class="border-l border-slate-600 h-16 rtl:border-l-0 rtl:border-r"></div>
+                 <div class="flex items-center gap-2 flex-wrap justify-center pl-2 rtl:pl-0 rtl:pr-2">
+                    <button id="manage-peymankars-btn" class="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg" data-translate-key="contractors"></button>
+                    <button id="manage-types-btn" class="text-sm bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg" data-translate-key="projectTypes"></button>
+                    <button id="settings-btn" class="text-sm bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg" data-translate-key="settings"></button>
+                    <button id="backup-restore-btn" class="text-sm bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg" data-translate-key="backup"></button>
+                    <select id="language-switcher" class="text-sm bg-slate-700 text-white rounded-lg p-2.5 cursor-pointer outline-none">
+                        <option value="fa">🇮🇷 فارسی</option>
+                        <option value="en">🇺🇸 English</option>
+                    </select>
+                    <button id="logout-btn" class="text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg" data-translate-key="logout"></button>
+                 </div>
+             </div>
+        </div>
+        
+        <div class="w-full mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 no-print">
+                 <div class="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-2xl shadow-2xl shadow-black/20 p-6">
+                    <h2 class="text-xl font-bold text-slate-100 mb-4 border-b border-slate-700 pb-3" data-translate-key="addNewProject"></h2>
+                    <div id="activation-notice" class="hidden p-3 mb-4 text-center bg-yellow-900/50 border border-yellow-600 rounded-lg">
+                        <p class="text-yellow-300 text-sm" data-translate-key="trialEnded"></p>
+                        <button id="activate-now-btn" class="mt-2 w-full text-sm bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg" data-translate-key="activateNow"></button>
+                    </div>
+                    <form id="addProjectForm" class="space-y-3">
+                        <select id="peymankarSelect" class="w-full px-2 py-3 bg-slate-700 border-2 border-slate-600 rounded-lg" required></select>
+                        <input type="text" id="projectInput" class="w-full px-4 py-3 bg-slate-700 border-2 border-slate-600 rounded-lg" data-translate-key-placeholder="projectTitlePlaceholder" required>
+                        <input type="text" id="totalAmountInput" class="w-full px-4 py-3 bg-slate-700 border-2 border-slate-600 rounded-lg" data-translate-key-placeholder="totalAmountPlaceholder" required>
+                        <select id="projectTypeSelect" class="w-full px-2 py-3 bg-slate-700 border-2 border-slate-600 rounded-lg" required></select>
+                        <button type="submit" class="w-full px-4 py-3 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700" data-translate-key="addProjectBtn"></button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2">
+                <div class="p-4 bg-slate-800/50 rounded-lg border border-slate-700 backdrop-blur-sm no-print">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="searchInput" class="w-full pl-4 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg" data-translate-key-placeholder="searchPlaceholder">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="date" id="startDateFilter" class="bg-slate-700 border border-slate-600 rounded-lg p-2 text-slate-400 w-full" title="Start Date">
+                            <input type="date" id="endDateFilter" class="bg-slate-700 border border-slate-600 rounded-lg p-2 text-slate-400 w-full" title="End Date">
+                        </div>
+                    </div>
+                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                        <select id="filterPeymankar" class="w-full px-2 py-2.5 bg-slate-700 border border-slate-600 rounded-lg"></select>
+                        <select id="filterType" class="w-full px-2 py-2.5 bg-slate-700 border border-slate-600 rounded-lg"></select>
+                        <select id="filterStatus" class="w-full px-2 py-2.5 bg-slate-700 border border-slate-600 rounded-lg"></select>
+                         <button id="clearFiltersBtn" class="bg-slate-600 hover:bg-slate-500 text-white rounded-lg" data-translate-key="clearFilters"></button>
+                    </div>
+                </div>
+
+                <div id="projectListContainer" class="max-h-[70vh] overflow-y-auto pr-2 mt-6">
+                    <ul id="projectList" class="space-y-4"></ul>
+                </div>
+                <div id="emptyMessage" class="text-center text-slate-500 py-8 hidden"><p data-translate-key="emptyProjectList"></p></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="modal-container"></div>
+    <div id="print-area-container" class="hidden"></div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+    const db = new Dexie("ProjectManagerPro_V10");
+    db.version(1).stores({
+        users: '&username, password, role',
+        projects: '++id, createdAt, peymankarId, type, status',
+        peymankars: '++id, &name, phone, address',
+        projectTypes: '++id, &name',
+        stages: '++id, projectId, createdAt',
+        payments: '++id, projectId, createdAt',
+        settings: 'id'
+    });
+
+    const translations = {
+        en: {
+            loginTitle: "System Login", username: "Username", password: "Password", loginBtn: "Login",
+            registerTitle: "Create Account", registerBtn: "Register",
+            signupPrompt: "Don't have an account? Sign Up", loginPrompt: "Already have an account? Login",
+            loginError: "Incorrect username or password.", registerErrorUserExists: "Username already exists.",
+            appTitle: "Karsaz Pro", currentUser: "Current User:", contractors: "Contractors",
+            projectTypes: "Project Types", settings: "Settings", backup: "Backup", logout: "Logout",
+            addNewProject: "Add New Project", selectContractor: "-- Select Contractor --",
+            selectPrefix: "-- Select",
+            projectTitlePlaceholder: "Project Title...", totalAmountPlaceholder: "Total Contract Amount",
+            selectProjectType: "-- Select Project Type --", addProjectBtn: "Add Project",
+            searchPlaceholder: "Search titles...", filterAllContractors: "All Contractors",
+            filterAllTypes: "All Types", filterAllStatuses: "All Statuses", clearFilters: "Clear Filters",
+            emptyProjectList: "Your project list is empty!", createdOn: "Created:", remaining: "Remaining:",
+            detailsBtn: "Details", projectDetails: "Project Details", print: "Print", totalAmount: "Total Amount",
+            paidAmount: "Paid Amount", remainingAmount: "Remaining Amount", stages: "Work Stages",
+            addStagePlaceholder: "New stage description...", add: "Add", payments: "Payments",
+            amount: "Amount", paymentMethod: "Payment Method", cardTransfer: "Card Transfer", cash: "Cash",
+            bankTransfer: "Bank Transfer", by: "by", manageContractors: "Manage Contractors",
+            fullName: "Full Name", phone: "Phone", address: "Address", save: "Save", cancel: "Cancel",
+            manageProjectTypes: "Manage Project Types", newTypePlaceholder: "New project type...",
+            appSettings: "Application Settings", businessName: "Business Name", logo: "Logo",
+            saveChanges: "Save Changes", terminology: "Terminology Customization", termForContractor: "Term for 'Contractor'",
+            termForProjectType: "Term for 'Project Type'", userManagement: "User Management",
+            addUser: "Add User", editUser: "Edit User", usernameIsAdmin: " (Admin)",
+            backupRestore: "Backup & Restore", downloadBackup: "Download Backup File", restoreFromFile: "Restore from File",
+            status_active: "Active", status_inprogress: "In Progress", status_completed: "Completed", status_archived: "Archived",
+            trialEnded: "Your 5-project trial has ended. Please activate to continue.", activateNow: "Activate Now",
+            activation: "Software Activation", activationCode: "Activation Code", activateBtn: "Activate",
+            activationSuccess: "Software activated successfully!", activationError: "Invalid or expired code.",
+            supportTitle: "Support & Contact with Developer",
+        },
+        fa: {
+            loginTitle: "ورود به سیستم", username: "نام کاربری", password: "رمز عبور", loginBtn: "ورود",
+            registerTitle: "ساخت حساب کاربری", registerBtn: "ثبت نام",
+            signupPrompt: "حساب کاربری ندارید؟ ثبت‌نام کنید", loginPrompt: "حساب دارید؟ وارد شوید",
+            loginError: "نام کاربری یا رمز عبور اشتباه است.", registerErrorUserExists: "این نام کاربری قبلا ثبت شده است.",
+            appTitle: "کارساز پرو", currentUser: "کاربر فعلی:", contractors: "پیمانکاران",
+            projectTypes: "انواع پروژه", settings: "تنظیمات", backup: "پشتیبان‌گیری", logout: "خروج",
+            addNewProject: "افزودن پروژه جدید", selectContractor: "-- انتخاب پیمانکار --",
+            selectPrefix: "-- انتخاب",
+            projectTitlePlaceholder: "عنوان پروژه...", totalAmountPlaceholder: "مبلغ کل قرارداد",
+            selectProjectType: "-- انتخاب نوع پروژه --", addProjectBtn: "افزودن پروژه",
+            searchPlaceholder: "جستجو در عناوین...", filterAllContractors: "همه پیمانکاران",
+            filterAllTypes: "همه انواع", filterAllStatuses: "همه وضعیت‌ها", clearFilters: "پاک کردن فیلتر",
+            emptyProjectList: "لیست پروژه‌های شما خالی است!", createdOn: "ایجاد:", remaining: "مانده:",
+            detailsBtn: "جزئیات", projectDetails: "جزئیات پروژه", print: "چاپ", totalAmount: "مبلغ کل",
+            paidAmount: "پرداخت شده", remainingAmount: "باقیمانده", stages: "مراحل کاری",
+            addStagePlaceholder: "شرح مرحله جدید...", add: "افزودن", payments: "پرداخت‌ها",
+            amount: "مبلغ", paymentMethod: "روش پرداخت", cardTransfer: "کارت به کارت", cash: "نقدی",
+            bankTransfer: "انتقال بانکی", by: "توسط", manageContractors: "مدیریت پیمانکاران",
+            fullName: "نام و نام خانوادگی", phone: "شماره تلفن", address: "آدرس", save: "ذخیره", cancel: "انصراف",
+            manageProjectTypes: "مدیریت انواع پروژه", newTypePlaceholder: "نوع پروژه جدید...",
+            appSettings: "تنظیمات برنامه", businessName: "نام کسب‌وکار", logo: "لوگو",
+            saveChanges: "ذخیره تغییرات", terminology: "شخصی‌سازی عناوین", termForContractor: "عنوان دلخواه برای 'پیمانکار'",
+            termForProjectType: "عنوان دلخواه برای 'نوع پروژه'", userManagement: "مدیریت کاربران",
+            addUser: "افزودن کاربر", editUser: "ویرایش کاربر", usernameIsAdmin: " (مدیر)",
+            backupRestore: "پشتیبان‌گیری و بازیابی", downloadBackup: "دانلود فایل پشتیبان", restoreFromFile: "بازیابی از فایل",
+            status_active: "فعال", status_inprogress: "در دست اقدام", status_completed: "تکمیل شده", status_archived: "بایگانی",
+            trialEnded: "نسخه آزمایشی ۵ پروژه‌ای شما تمام شده. لطفا فعال‌سازی کنید.", activateNow: "فعال‌سازی",
+            activation: "فعال‌سازی نرم‌افزار", activationCode: "کد فعال‌سازی", activateBtn: "فعال‌سازی",
+            activationSuccess: "نرم‌افزار با موفقیت فعال شد!", activationError: "کد نامعتبر یا منقضی شده است.",
+            supportTitle: "پشتیبانی و تماس با سازنده",
+        }
+    };
+
+    let appState = { loggedInUser: null, lang: 'fa', projects: [], peymankars: [], projectTypes: [], stages: [], payments: [], users: [], settings: {}, activeProjectId: null, isActivated: false };
+    const SECRET_KEY = "MY_SUPER_SECRET_KEY_2025";
+    const statusMap = { active: { color: 'bg-green-500' }, inprogress: { color: 'bg-yellow-500' }, completed: { color: 'bg-blue-500' }, archived: { color: 'bg-gray-500' } };
+    const formatCurrency = (num) => new Intl.NumberFormat(appState.lang === 'fa' ? 'fa-IR' : 'en-US', { maximumFractionDigits: 2 }).format(num || 0);
+    const formatDate = (timestamp) => new Date(timestamp).toLocaleString(appState.lang === 'fa' ? 'fa-IR' : 'en-US', { dateStyle: 'short', timeStyle: 'short'});
+    let clockInterval;
+
+    const DOMElements = {
+        authSection: document.getElementById('auth-section'),
+        appSection: document.getElementById('app-section'),
+        loginForm: document.getElementById('loginForm'),
+        registerForm: document.getElementById('registerForm'),
+        authError: document.getElementById('auth-error'),
+        registerError: document.getElementById('register-error'),
+        usernameInput: document.getElementById('username'),
+        passwordInput: document.getElementById('password'),
+        logoutBtn: document.getElementById('logout-btn'),
+        languageSwitcher: document.getElementById('language-switcher'),
+        projectList: document.getElementById('projectList'),
+        addProjectForm: document.getElementById('addProjectForm'),
+        activationNotice: document.getElementById('activation-notice'),
+        peymankarSelect: document.getElementById('peymankarSelect'),
+        projectTypeSelect: document.getElementById('projectTypeSelect'),
+        filterPeymankar: document.getElementById('filterPeymankar'),
+        filterType: document.getElementById('filterType'),
+        filterStatus: document.getElementById('filterStatus'),
+        startDateFilter: document.getElementById('startDateFilter'),
+        endDateFilter: document.getElementById('endDateFilter'),
+        clearFiltersBtn: document.getElementById('clearFiltersBtn'),
+        searchInput: document.getElementById('searchInput'),
+        currentUserDisplay: document.getElementById('currentUserDisplay'),
+        userCompanyName: document.getElementById('user-company-name'),
+        userLogo: document.getElementById('user-logo'),
+        emptyMessage: document.getElementById('emptyMessage'),
+        liveDate: document.getElementById('liveDate'),
+        liveTime: document.getElementById('liveTime'),
+    };
+    
+    async function init() {
+        injectAllModals();
+        setupAuthListeners();
+        const lang = localStorage.getItem('appLang') || 'fa';
+        await applyLanguage(lang);
+    }
+    
+    async function startApp(user) {
+        appState.loggedInUser = user;
+        DOMElements.authSection.classList.add('hidden');
+        DOMElements.appSection.classList.remove('hidden');
+        const lang = localStorage.getItem('appLang') || 'fa';
+        appState.lang = lang;
+        DOMElements.languageSwitcher.value = lang;
+        await loadDataFromDB();
+        checkActivationStatus();
+        setupMainAppListeners();
+        await applyLanguage(lang);
+        renderProjects();
+        startClock();
+    }
+
+    async function loadDataFromDB() {
+        const [settings, projects, peymankars, projectTypes, stages, payments, users] = await Promise.all([
+            db.settings.toArray(), db.projects.toArray(), db.peymankars.toArray(),
+            db.projectTypes.toArray(), db.stages.toArray(), db.payments.toArray(), db.users.toArray()
+        ]);
+        appState.settings = settings.reduce((acc, setting) => ({ ...acc, [setting.id]: setting.value }), {});
+        appState.projects = projects;
+        appState.peymankars = peymankars;
+        appState.projectTypes = projectTypes;
+        appState.stages = stages;
+        appState.payments = payments;
+        appState.users = users;
+    }
+    
+    async function applyLanguage(lang) {
+        appState.lang = lang;
+        localStorage.setItem('appLang', lang);
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+
+        const contractorTerm = appState.settings.contractorTerm || translations[lang].contractors;
+        const projectTypeTerm = appState.settings.projectTypeTerm || translations[lang].projectTypes;
+
+        document.querySelectorAll('[data-translate-key]').forEach(el => {
+            const key = el.dataset.translateKey;
+            let text = translations[lang][key];
+            if (key === 'contractors') text = contractorTerm;
+            if (key === 'projectTypes') text = projectTypeTerm;
+            if (text) el.textContent = text;
+        });
+        document.querySelectorAll('[data-translate-key-placeholder]').forEach(el => {
+            const key = el.dataset.translateKeyPlaceholder;
+            if (translations[lang][key]) el.placeholder = translations[lang][key];
+        });
+
+        DOMElements.userCompanyName.textContent = appState.settings.companyName || translations[lang].appTitle;
+        if(appState.loggedInUser) DOMElements.currentUserDisplay.textContent = appState.loggedInUser.username;
+        await populateAllDropdowns();
+    }
+    
+    function startClock() {
+        if (clockInterval) clearInterval(clockInterval);
+        const updateClock = () => {
+            const now = new Date();
+            const langLocale = appState.lang === 'fa' ? 'fa-IR-u-nu-latn' : 'en-US';
+            DOMElements.liveDate.textContent = new Intl.DateTimeFormat(appState.lang === 'fa' ? 'fa-IR' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(now);
+            DOMElements.liveTime.textContent = new Intl.DateTimeFormat(langLocale, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(now);
+        };
+        updateClock();
+        clockInterval = setInterval(updateClock, 1000);
+    }
+
+    function setupAuthListeners() {
+        document.getElementById('showRegister').addEventListener('click', (e) => { e.preventDefault(); DOMElements.loginForm.classList.add('hidden'); DOMElements.registerForm.classList.remove('hidden'); });
+        document.getElementById('showLogin').addEventListener('click', (e) => { e.preventDefault(); DOMElements.registerForm.classList.add('hidden'); DOMElements.loginForm.classList.remove('hidden'); });
+        DOMElements.loginForm.addEventListener('submit', async (e) => { e.preventDefault(); const username = DOMElements.usernameInput.value.trim(); const password = DOMElements.passwordInput.value.trim(); const user = await db.users.get(username); if (user && user.password === password) { startApp(user); } else { DOMElements.authError.textContent = translations[appState.lang].loginError; DOMElements.authError.classList.remove('hidden'); } });
+        DOMElements.registerForm.addEventListener('submit', async (e) => { e.preventDefault(); const username = document.getElementById('regUsername').value.trim(); const password = document.getElementById('regPassword').value.trim(); if (!username || !password) return; const existingUser = await db.users.get(username); if(existingUser) { DOMElements.registerError.textContent = translations[appState.lang].registerErrorUserExists; DOMElements.registerError.classList.remove('hidden'); return; } const userCount = await db.users.count(); const newUser = { username, password, role: userCount === 0 ? 'admin' : 'user' }; await db.users.add(newUser); startApp(newUser); });
+    }
+
+    function logout() { window.location.reload(); }
+
+    function checkActivationStatus() {
+        const expiry = appState.settings.activationExpiry;
+        if (expiry && Date.now() < expiry) {
+            appState.isActivated = true;
+            DOMElements.addProjectForm.style.opacity = '1';
+            DOMElements.addProjectForm.style.pointerEvents = 'auto';
+            DOMElements.activationNotice.classList.add('hidden');
+        } else {
+            appState.isActivated = false;
+            if (appState.projects.length >= 5) {
+                DOMElements.addProjectForm.style.opacity = '0.5';
+                DOMElements.addProjectForm.style.pointerEvents = 'none';
+                DOMElements.activationNotice.classList.remove('hidden');
+            } else {
+                 DOMElements.addProjectForm.style.opacity = '1';
+                DOMElements.addProjectForm.style.pointerEvents = 'auto';
+                DOMElements.activationNotice.classList.add('hidden');
+            }
+        }
+    }
+    function simpleHash(str) { let hash = 0; for (let i = 0; i < str.length; i++) { const char = str.charCodeAt(i); hash = (hash << 5) - hash + char; hash |= 0; } return Math.abs(hash).toString(36).toUpperCase(); }
+    
+    function validateActivationCode(code) {
+        const parts = code.split('-');
+        if (parts.length !== 4) return { isValid: false };
+        
+        const validityHex = parts[3];
+        const validity = parseInt(validityHex, 16);
+        if (isNaN(validity) || validity <= 0) return { isValid: false };
+        
+        const clientIdentifier = appState.users.find(u => u.role === 'admin')?.username || 'admin';
+        
+        const payload = `${clientIdentifier}|${validity}|${SECRET_KEY}`;
+        const hashedPayload = simpleHash(payload);
+        const part1 = hashedPayload.substring(0, 4);
+        const part2 = simpleHash(clientIdentifier + SECRET_KEY).substring(0, 4);
+        const part3 = simpleHash(SECRET_KEY + validity).substring(0, 4);
+
+        if (parts[0] === part1 && parts[1] === part2 && parts[2] === part3) {
+            return { isValid: true, months: validity };
+        }
+        return { isValid: false };
+    }
+
+    function renderProjects() {
+        DOMElements.projectList.innerHTML = '';
+        const filters = { search: DOMElements.searchInput.value.toLowerCase(), peymankar: DOMElements.filterPeymankar.value, type: DOMElements.filterType.value, status: DOMElements.filterStatus.value, startDate: DOMElements.startDateFilter.value ? new Date(DOMElements.startDateFilter.value).getTime() : 0, endDate: DOMElements.endDateFilter.value ? new Date(DOMElements.endDateFilter.value).setHours(23, 59, 59, 999) : Infinity, };
+        const filteredProjects = appState.projects.filter(p => (p.text.toLowerCase().includes(filters.search) && (!filters.peymankar || p.peymankarId == filters.peymankar) && (!filters.type || p.type === filters.type) && (!filters.status || p.status === filters.status) && (p.createdAt >= filters.startDate && p.createdAt <= filters.endDate))).sort((a, b) => b.createdAt - a.createdAt);
+        DOMElements.emptyMessage.classList.toggle('hidden', filteredProjects.length > 0);
+        
+        filteredProjects.forEach(project => {
+            const peymankar = appState.peymankars.find(p => p.id === project.peymankarId);
+            const totalPaid = appState.payments.filter(p => p.projectId === project.id).reduce((sum, p) => sum + p.amount, 0);
+            const remaining = project.totalAmount - totalPaid;
+            const statusInfo = statusMap[project.status];
+            const lang = appState.lang;
+            const li = document.createElement('li');
+            li.className = 'p-4 rounded-lg shadow-md border border-slate-700 bg-slate-800';
+            li.innerHTML = `
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                           <span class="w-3 h-3 rounded-full ${statusInfo.color}" title="${translations[lang]['status_' + project.status]}"></span>
+                           <span class="font-bold text-lg">${project.text}</span>
+                        </div>
+                        <p class="text-sm text-slate-400 ltr:ml-5 rtl:mr-5 font-semibold">${peymankar ? peymankar.name : ''} | <span class="text-cyan-400">${project.type}</span></p>
+                        <p class="text-xs text-slate-500 ltr:ml-5 rtl:mr-5 mt-1">${formatDate(project.createdAt)}</p>
+                    </div>
+                    <div class="text-left flex-shrink-0">
+                         <p class="text-sm font-semibold text-red-400">${translations[lang].remaining} ${formatCurrency(remaining)}</p>
+                         <button class="details-btn mt-2 bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded-md text-xs" data-id="${project.id}" data-translate-key="detailsBtn"></button>
+                    </div>
+                </div>`;
+            DOMElements.projectList.appendChild(li);
+        });
+        document.querySelectorAll('[data-translate-key="detailsBtn"]').forEach(el => el.textContent = translations[appState.lang].detailsBtn);
+    }
+
+    async function populateAllDropdowns() {
+        const lang = appState.lang;
+        const contractorTerm = appState.settings.contractorTerm || translations[lang].contractors;
+        const projectTypeTerm = appState.settings.projectTypeTerm || translations[lang].projectTypes;
+
+        const currentFilters = { peymankar: DOMElements.filterPeymankar.value, type: DOMElements.filterType.value, status: DOMElements.filterStatus.value };
+
+        const populate = (select, data, placeholder, valueField = 'id', nameField = 'name') => {
+            select.innerHTML = `<option value="">${placeholder}</option>`;
+            data.forEach(item => select.add(new Option(item[nameField], item[valueField])));
+        };
+        
+        populate(DOMElements.peymankarSelect, appState.peymankars, `${translations[lang].selectPrefix} ${contractorTerm}`);
+        populate(DOMElements.projectTypeSelect, appState.projectTypes, `${translations[lang].selectPrefix} ${projectTypeTerm}`);
+        populate(DOMElements.filterPeymankar, appState.peymankars, translations[lang].filterAllContractors.replace(translations.en.contractors, contractorTerm));
+        populate(DOMElements.filterType, appState.projectTypes, translations[lang].filterAllTypes.replace(translations.en.projectTypes, projectTypeTerm));
+        
+        DOMElements.filterStatus.innerHTML = `<option value="">${translations[lang].filterAllStatuses}</option>` + Object.keys(statusMap).map(key => `<option value="${key}">${translations[lang]['status_' + key]}</option>`).join('');
+
+        DOMElements.filterPeymankar.value = currentFilters.peymankar;
+        DOMElements.filterType.value = currentFilters.type;
+        DOMElements.filterStatus.value = currentFilters.status;
+    }
+    
+    function setupMainAppListeners() {
+        DOMElements.logoutBtn.addEventListener('click', logout);
+        DOMElements.languageSwitcher.addEventListener('change', async (e) => { await applyLanguage(e.target.value); renderProjects(); });
+        document.getElementById('manage-peymankars-btn').addEventListener('click', () => openManagementModal('peymankar'));
+        document.getElementById('manage-types-btn').addEventListener('click', () => openManagementModal('types'));
+        document.getElementById('settings-btn').addEventListener('click', openSettingsModal);
+        document.getElementById('backup-restore-btn').addEventListener('click', () => openManagementModal('backup'));
+        document.getElementById('activate-now-btn').addEventListener('click', openSettingsModal);
+        DOMElements.addProjectForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!appState.isActivated && appState.projects.length >= 5) { alert(translations[appState.lang].trialEnded); return; }
+            const peymankarId = parseInt(DOMElements.peymankarSelect.value); const projectType = DOMElements.projectTypeSelect.value;
+            if (!document.getElementById('projectInput').value || !peymankarId || !projectType) { alert(appState.lang === 'fa' ? 'لطفا تمام فیلدها را پر کنید' : 'Please fill all fields'); return; }
+            const newProject = { text: document.getElementById('projectInput').value, peymankarId, totalAmount: parseFloat(document.getElementById('totalAmountInput').value.replace(/,/g, '')) || 0, type: projectType, createdAt: Date.now(), status: 'active', createdBy: appState.loggedInUser.username };
+            const newId = await db.projects.add(newProject);
+            appState.projects.push({ ...newProject, id: newId });
+            DOMElements.addProjectForm.reset();
+            checkActivationStatus();
+            renderProjects();
+        });
+        [DOMElements.searchInput, DOMElements.filterPeymankar, DOMElements.filterType, DOMElements.filterStatus, DOMElements.startDateFilter, DOMElements.endDateFilter].forEach(el => { el.addEventListener('input', renderProjects); el.addEventListener('change', renderProjects); });
+        DOMElements.clearFiltersBtn.addEventListener('click', () => { DOMElements.searchInput.value = ''; DOMElements.filterPeymankar.value = ''; DOMElements.filterType.value = ''; DOMElements.filterStatus.value = ''; DOMElements.startDateFilter.value = ''; DOMElements.endDateFilter.value = ''; renderProjects(); });
+        document.getElementById('projectListContainer').addEventListener('click', e => { if (e.target.classList.contains('details-btn')) { openProjectModal(parseInt(e.target.dataset.id)); } });
+        document.body.addEventListener('click', (e) => { if (e.target.classList.contains('close-modal-btn')) { e.target.closest('.fixed').classList.add('hidden'); } });
+    }
+
+    function injectAllModals() {
+        const modalContainer = document.getElementById('modal-container');
+        modalContainer.innerHTML = `
+        <div id="projectModal" class="hidden fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center p-4 z-50"> <div class="bg-slate-800 w-full max-w-5xl rounded-2xl shadow-2xl border border-slate-700 p-6 max-h-[90vh] flex flex-col"> <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-4 no-print"> <h2 id="modalProjectTitle" class="text-2xl font-bold"></h2> <div class="flex items-center gap-2"> <select id="projectStatusSelect" class="text-sm bg-slate-700 text-white rounded-lg p-2 cursor-pointer outline-none"></select> <button id="print-btn" class="text-sm bg-gray-600 hover:bg-gray-500 text-white px-3 py-2 rounded-lg" data-translate-key="print"></button> <button class="close-modal-btn text-slate-400 hover:text-white text-3xl leading-none">&times;</button> </div> </div> <div id="project-modal-content-wrapper" class="overflow-y-auto flex-grow pr-2"></div> </div> </div>
+        <div id="peymankarModal" class="hidden fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center p-4 z-50"> <div class="bg-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-700 p-6 max-h-[90vh] flex flex-col"> <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-4"> <h2 class="text-2xl font-bold" data-translate-key="manageContractors"></h2> <button class="close-modal-btn text-slate-400 hover:text-white text-3xl leading-none">&times;</button> </div> <form id="peymankarForm" class="space-y-3 mb-4 p-4 bg-slate-900/50 rounded-lg"> <input type="hidden" id="peymankarIdInput"> <input type="text" id="peymankarNameInput" class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg" data-translate-key-placeholder="fullName" required> <input type="text" id="peymankarPhoneInput" class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg" data-translate-key-placeholder="phone"> <input type="text" id="peymankarAddressInput" class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg" data-translate-key-placeholder="address"> <div class="flex gap-2"> <button type="submit" class="w-full px-5 py-2 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700" data-translate-key="save"></button> <button type="button" id="cancelEditPeymankarBtn" class="w-full px-5 py-2 bg-slate-600 text-white font-bold rounded-lg hover:bg-slate-500 hidden" data-translate-key="cancel"></button> </div> </form> <ul id="peymankar-list" class="overflow-y-auto space-y-2"></ul> </div> </div>
+        <div id="typesModal" class="hidden fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center p-4 z-50"> <div class="bg-slate-800 w-full max-w-xl rounded-2xl shadow-2xl border border-slate-700 p-6 max-h-[90vh] flex flex-col"> <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-4"> <h2 class="text-2xl font-bold" data-translate-key="manageProjectTypes"></h2> <button class="close-modal-btn text-slate-400 hover:text-white text-3xl leading-none">&times;</button> </div> <form id="typeForm" class="flex gap-2 mb-4"> <input type="hidden" id="typeIdInput"> <input type="text" id="typeNameInput" class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg" data-translate-key-placeholder="newTypePlaceholder" required> <button type="submit" class="px-5 py-2 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700" data-translate-key="save"></button> <button type="button" id="cancelEditTypeBtn" class="px-5 py-2 bg-slate-600 text-white font-bold rounded-lg hover:bg-slate-500 hidden" data-translate-key="cancel"></button> </form> <ul id="type-list" class="overflow-y-auto space-y-2"></ul> </div> </div>
+        <div id="settingsModal" class="hidden fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center p-4 z-50"> <div class="bg-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-700 p-6 max-h-[90vh] flex flex-col"> <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-4"> <h2 class="text-2xl font-bold" data-translate-key="settings"></h2> <button class="close-modal-btn text-slate-400 hover:text-white text-3xl leading-none">&times;</button> </div> <div class="overflow-y-auto flex-grow pr-2 space-y-6"> <form id="settingsForm" class="space-y-4"> <h3 class="text-lg font-bold border-b border-slate-600 pb-2" data-translate-key="appSettings"></h3> <div><label class="block mb-2 text-sm font-medium" data-translate-key="businessName"></label><input type="text" id="companyNameInput" class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg"></div> <div><label class="block mb-2 text-sm font-medium" data-translate-key="logo"></label><input type="file" id="logoInput" accept="image/*" class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-violet-700 hover:file:bg-violet-600"></div> <h3 class="text-lg font-bold border-b border-slate-600 pb-2 mt-4" data-translate-key="terminology"></h3> <div><label class="block mb-2 text-sm font-medium" data-translate-key="termForContractor"></label><input type="text" id="contractorTermInput" class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg"></div> <div><label class="block mb-2 text-sm font-medium" data-translate-key="termForProjectType"></label><input type="text" id="projectTypeTermInput" class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg"></div> <button type="submit" class="w-full px-6 py-3 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700" data-translate-key="saveChanges"></button> </form> <div id="activationSection" class="space-y-4"> <h3 class="text-lg font-bold border-b border-slate-600 pb-2" data-translate-key="activation"></h3> <form id="activationForm" class="space-y-3 p-4 bg-slate-900/50 rounded-lg"> <div><label class="block text-slate-300 text-sm font-bold mb-2" data-translate-key="activationCode"></label><input class="w-full py-2 px-3 bg-slate-700 border-slate-600 text-slate-200 rounded-lg" id="activationCodeInput" type="text" required></div> <button type="submit" class="w-full px-5 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700" data-translate-key="activateBtn"></button> </form> </div> <div id="userManagementSection" class="space-y-4"> <h3 class="text-lg font-bold border-b border-slate-600 pb-2" data-translate-key="userManagement"></h3> <form id="userForm" class="space-y-3 p-4 bg-slate-900/50 rounded-lg"> <input type="hidden" id="usernameInputHidden"> <div><label class="block text-slate-300 text-sm font-bold mb-2" data-translate-key="username"></label><input class="w-full py-2 px-3 bg-slate-700 border-slate-600 text-slate-200 rounded-lg" id="userInputName" type="text" required></div> <div><label class="block text-slate-300 text-sm font-bold mb-2" data-translate-key="password"></label><input class="w-full py-2 px-3 bg-slate-700 border-slate-600 text-slate-200 rounded-lg" id="userInputPassword" type="password" placeholder="Enter new password (optional)"></div> <div class="flex gap-2"> <button type="submit" class="w-full px-5 py-2 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700" data-translate-key="save"></button> <button type="button" id="cancelEditUserBtn" class="w-full px-5 py-2 bg-slate-600 text-white font-bold rounded-lg hover:bg-slate-500 hidden" data-translate-key="cancel"></button> </div> </form> <ul id="user-list" class="space-y-2"></ul> </div> <div id="supportSection" class="space-y-2 p-4 bg-slate-900/50 rounded-lg text-center"> <h3 class="text-lg font-bold mb-2" data-translate-key="supportTitle"></h3> <p>سید حسن علوی نیا</p><p>موبایل: 09155304248</p><p>ایمیل: ceiedhasanalavinia@gmail.com</p></div></div> </div> </div>
+        <div id="backupModal" class="hidden fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center p-4 z-50"> <div class="bg-slate-800 w-full max-w-xl rounded-2xl shadow-2xl border border-slate-700 p-6 max-h-[90vh] flex flex-col"> <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-4"> <h2 class="text-2xl font-bold" data-translate-key="backupRestore"></h2> <button class="close-modal-btn text-slate-400 hover:text-white text-3xl leading-none">&times;</button> </div> <div class="space-y-4"> <button id="backupBtn" class="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700" data-translate-key="downloadBackup"></button> <hr class="border-slate-600"/> <label class="block"><span class="block mb-2 text-sm font-medium" data-translate-key="restoreFromFile"></span><input type="file" id="restoreInput" accept=".json" class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-violet-700 hover:file:bg-violet-600"></label> <button id="restoreBtn" class="w-full px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700" data-translate-key="restoreFromFile"></button> </div> </div> </div>`;
+    }
+    // ... all other functions are defined below, same as the last correct version.
+    // Full, complete functions follow to avoid any further issues.
+    function openProjectModal(projectId) {
+        appState.activeProjectId = projectId; const project = appState.projects.find(p => p.id === projectId); if (!project) return;
+        const modal = document.getElementById('projectModal'); modal.querySelector('#modalProjectTitle').textContent = project.text;
+        const statusSelect = modal.querySelector('#projectStatusSelect'); statusSelect.innerHTML = Object.keys(statusMap).map(key => `<option value="${key}">${translations[appState.lang]['status_' + key]}</option>`).join(''); statusSelect.value = project.status;
+        const contentWrapper = modal.querySelector('#project-modal-content-wrapper');
+        contentWrapper.innerHTML = `<div id="modalFinancialSummary" class="mb-4 grid grid-cols-3 gap-4 text-center"></div> <div class="grid grid-cols-1 md:grid-cols-2 gap-6"> <div> <h3 class="text-lg font-semibold mb-3" data-translate-key="stages"></h3> <form id="addStageForm" class="flex gap-2 mb-4 no-print"> <input type="text" id="stageInput" class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg" data-translate-key-placeholder="addStagePlaceholder" required> <button type="submit" class="px-5 py-2 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700" data-translate-key="add"></button> </form> <ul id="stageList" class="space-y-2"></ul> </div> <div class="border-t md:border-t-0 md:border-l border-slate-700 pt-4 md:pt-0 md:pl-6 rtl:md:pr-6 rtl:md:border-l-0 rtl:md:border-r"> <h3 class="text-lg font-semibold mb-3" data-translate-key="payments"></h3> <form id="addPaymentForm" class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4 no-print"> <input type="text" id="paymentAmount" class="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg" data-translate-key-placeholder="amount" required> <select id="paymentMethod" class="w-full px-2 py-2 bg-slate-700 border border-slate-600 rounded-lg"></select> <button type="submit" class="w-full px-4 py-2 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700" data-translate-key="add"></button> </form> <ul id="paymentList" class="space-y-2"></ul> </div> </div>`;
+        applyLanguage(appState.lang);
+        statusSelect.onchange = async (e) => { const newStatus = e.target.value; await db.projects.update(appState.activeProjectId, { status: newStatus }); project.status = newStatus; renderProjects(); };
+        modal.querySelector('#print-btn').onclick = () => { const printContent = contentWrapper.innerHTML; const printAreaContainer = document.getElementById('print-area-container'); const printArea = document.createElement('div'); printArea.id = 'print-area'; printArea.innerHTML = `<h1>${project.text}</h1>` + printContent; printAreaContainer.innerHTML = ''; printAreaContainer.appendChild(printArea); printAreaContainer.classList.remove('hidden'); window.print(); printAreaContainer.classList.add('hidden'); };
+        modal.querySelector('#addStageForm').onsubmit = async (e) => { e.preventDefault(); const input = modal.querySelector('#stageInput'); if (!input.value.trim()) return; const newStage = { projectId, text: input.value, createdAt: Date.now(), createdBy: appState.loggedInUser.username }; const newId = await db.stages.add(newStage); appState.stages.push({ ...newStage, id: newId }); renderStages(projectId); input.value = ''; };
+        contentWrapper.querySelector('#stageList').onclick = async (e) => { if (e.target.classList.contains('delete-stage-btn')) { const id = parseInt(e.target.dataset.id); if(confirm(appState.lang === 'fa' ? 'آیا از حذف مطمئن هستید؟' : 'Are you sure?')) { await db.stages.delete(id); appState.stages = appState.stages.filter(s => s.id !== id); renderStages(projectId); } } };
+        modal.querySelector('#addPaymentForm').onsubmit = async (e) => { e.preventDefault(); const amountInput = modal.querySelector('#paymentAmount'); const methodInput = modal.querySelector('#paymentMethod'); const amountValue = parseFloat(amountInput.value.replace(/,|٫/g, '.')) || 0; if (isNaN(amountValue) || amountValue < 0) return; const newPayment = { projectId, amount: amountValue, method: methodInput.value, createdAt: Date.now(), createdBy: appState.loggedInUser.username }; const newId = await db.payments.add(newPayment); appState.payments.push({ ...newPayment, id: newId }); renderPayments(projectId); renderFinancialSummary(projectId); renderProjects(); amountInput.value = ''; };
+        contentWrapper.querySelector('#paymentList').onclick = async (e) => { if (e.target.classList.contains('delete-payment-btn')) { const id = parseInt(e.target.dataset.id); if(confirm(appState.lang === 'fa' ? 'آیا از حذف مطمئن هستید؟' : 'Are you sure?')) { await db.payments.delete(id); appState.payments = appState.payments.filter(p => p.id !== id); renderPayments(projectId); renderFinancialSummary(projectId); renderProjects(); } } };
+        renderFinancialSummary(projectId); renderStages(projectId); renderPayments(projectId); modal.classList.remove('hidden');
+    }
+    function renderFinancialSummary(projectId) { const project = appState.projects.find(p => p.id === projectId); const totalPaid = appState.payments.filter(p => p.projectId === projectId).reduce((sum, p) => sum + p.amount, 0); const remaining = project.totalAmount - totalPaid; const lang = appState.lang; document.getElementById('modalFinancialSummary').innerHTML = `<div class="p-2 bg-slate-900/50 rounded-lg"><div class="text-xs text-slate-400">${translations[lang].totalAmount}</div><div class="text-lg font-bold text-cyan-400">${formatCurrency(project.totalAmount)}</div></div> <div class="p-2 bg-slate-900/50 rounded-lg"><div class="text-xs text-slate-400">${translations[lang].paidAmount}</div><div class="text-lg font-bold text-green-400">${formatCurrency(totalPaid)}</div></div> <div class="p-2 bg-slate-900/50 rounded-lg"><div class="text-xs text-slate-400">${translations[lang].remainingAmount}</div><div class="text-lg font-bold text-red-400">${formatCurrency(remaining)}</div></div>`; }
+    function renderStages(projectId) { const list = document.getElementById('stageList'); if(!list) return; list.innerHTML = appState.stages.filter(s => s.projectId === projectId).sort((a,b) => a.createdAt - b.createdAt).map(stage => `<li class="flex justify-between items-center p-2 bg-slate-700/50 rounded text-sm"><div><p>${stage.text}</p><p class="text-xs text-slate-400">${formatDate(stage.createdAt)} ${translations[appState.lang].by} ${stage.createdBy}</p></div><button data-id="${stage.id}" class="delete-stage-btn text-red-400 hover:text-red-300 no-print">&times;</button></li>`).join(''); }
+    function renderPayments(projectId) { const list = document.getElementById('paymentList'); if(!list) return; const paymentMethodSelect = document.getElementById('paymentMethod'); const lang = appState.lang; paymentMethodSelect.innerHTML = `<option value="${translations[lang].cardTransfer}">${translations[lang].cardTransfer}</option><option value="${translations[lang].cash}">${translations[lang].cash}</option><option value="${translations[lang].bankTransfer}">${translations[lang].bankTransfer}</option>`; list.innerHTML = appState.payments.filter(p => p.projectId === projectId).sort((a,b) => a.createdAt - b.createdAt).map(payment => `<li class="flex justify-between items-center p-2 bg-slate-700/50 rounded text-sm"><div><p class="font-semibold text-yellow-300">${formatCurrency(payment.amount)} <span class="text-xs text-slate-300">(${payment.method})</span></p><p class="text-xs text-slate-400">${formatDate(payment.createdAt)} ${translations[lang].by} ${payment.createdBy}</p></div><button data-id="${payment.id}" class="delete-payment-btn text-red-400 hover:text-red-300 no-print">&times;</button></li>`).join(''); }
+    function openManagementModal(type) { const modalId = type === 'types' ? 'typesModal' : `${type}Modal`; document.getElementById(modalId).classList.remove('hidden'); if (type === 'peymankar') setupManagementModal({ name: 'peymankar', dbTable: db.peymankars, appTable: 'peymankars', renderFn: renderPeymankarList }); if (type === 'types') setupManagementModal({ name: 'type', dbTable: db.projectTypes, appTable: 'projectTypes', renderFn: renderTypeList }); if (type === 'backup') { document.getElementById('backupBtn').onclick = backupData; document.getElementById('restoreBtn').onclick = restoreData; } }
+    function setupManagementModal({ name, dbTable, appTable, renderFn }) { const form = document.getElementById(`${name}Form`); const idInput = document.getElementById(`${name}IdInput`); const cancelBtn = document.getElementById(`cancelEdit${name.charAt(0).toUpperCase() + name.slice(1)}Btn`); const list = document.getElementById(`${name}-list`); form.onsubmit = async (e) => { e.preventDefault(); const id = idInput ? parseInt(idInput.value) : null; let values; if (name === 'peymankar') { values = { name: form.peymankarNameInput.value, phone: form.peymankarPhoneInput.value, address: form.peymankarAddressInput.value }; } else { values = { name: form.typeNameInput.value }; } if(id) { await dbTable.update(id, values); const index = appState[appTable].findIndex(item => item.id === id); appState[appTable][index] = { ...appState[appTable][index], ...values }; } else { const newId = await dbTable.add(values); appState[appTable].push({ id: newId, ...values }); } form.reset(); if(idInput) idInput.value = ''; if(cancelBtn) cancelBtn.classList.add('hidden'); renderFn(); populateAllDropdowns(); }; list.onclick = (e) => { const target = e.target; const id = parseInt(target.dataset.id); if (target.classList.contains('edit-btn')) { const item = appState[appTable].find(i => i.id === id); if (idInput) idInput.value = item.id; if (name === 'peymankar') { form.peymankarNameInput.value = item.name; form.peymankarPhoneInput.value = item.phone || ''; form.peymankarAddressInput.value = item.address || ''; } else { form.typeNameInput.value = item.name; } if (cancelBtn) cancelBtn.classList.remove('hidden'); } if (target.classList.contains('delete-btn')) { if (confirm(appState.lang === 'fa' ? 'آیا از حذف مطمئن هستید؟' : 'Are you sure?')) { dbTable.delete(id); appState[appTable] = appState[appTable].filter(i => i.id !== id); renderFn(); populateAllDropdowns(); } } }; if (cancelBtn) { cancelBtn.onclick = () => { form.reset(); if(idInput) idInput.value = ''; cancelBtn.classList.add('hidden'); }; } }
+    function renderPeymankarList() { document.getElementById('peymankar-list').innerHTML = appState.peymankars.map(p => `<li class="p-2 bg-slate-700/50 rounded flex justify-between items-center"><div><p class="font-bold">${p.name}</p><p class="text-xs text-slate-400">${p.phone || ''} - ${p.address || ''}</p></div><div class="flex gap-2"><button data-id="${p.id}" class="edit-btn text-blue-400 hover:text-blue-300">${translations[appState.lang].editUser}</button><button data-id="${p.id}" class="delete-btn text-red-400 hover:text-red-300">×</button></div></li>`).join(''); }
+    function renderTypeList() { document.getElementById('type-list').innerHTML = appState.projectTypes.map(t => `<li class="p-2 bg-slate-700/50 rounded flex justify-between items-center"><span>${t.name}</span><div class="flex gap-2"><button data-id="${t.id}" class="edit-btn text-blue-400 hover:text-blue-300">${translations[appState.lang].editUser}</button><button data-id="${t.id}" class="delete-btn text-red-400 hover:text-red-300">×</button></div></li>`).join(''); }
+    function openSettingsModal() { document.getElementById('settingsModal').classList.remove('hidden'); document.getElementById('companyNameInput').value = appState.settings.companyName || ''; document.getElementById('contractorTermInput').value = appState.settings.contractorTerm || ''; document.getElementById('projectTypeTermInput').value = appState.settings.projectTypeTerm || ''; const userManagementSection = document.getElementById('userManagementSection'); if(appState.loggedInUser.role === 'admin') { userManagementSection.classList.remove('hidden'); renderUserList(); setupUserManagementListeners(); } else { userManagementSection.classList.add('hidden'); } document.getElementById('settingsForm').onsubmit = async (e) => { e.preventDefault(); const newSettings = [ { id: 'companyName', value: document.getElementById('companyNameInput').value }, { id: 'contractorTerm', value: document.getElementById('contractorTermInput').value.trim() }, { id: 'projectTypeTerm', value: document.getElementById('projectTypeTermInput').value.trim() }, ]; await db.settings.bulkPut(newSettings); await loadDataFromDB(); await applyLanguage(appState.lang); alert(appState.lang === 'fa' ? 'ذخیره شد!' : 'Saved!'); }; document.getElementById('activationForm').onsubmit = async (e) => { e.preventDefault(); const code = document.getElementById('activationCodeInput').value; const validationResult = validateActivationCode(code); if(validationResult.isValid) { const expiryDate = Date.now() + validationResult.months * 30 * 24 * 60 * 60 * 1000; await db.settings.put({id: 'activationExpiry', value: expiryDate}); await loadDataFromDB(); checkActivationStatus(); alert(translations[appState.lang].activationSuccess); document.getElementById('settingsModal').classList.add('hidden'); } else { alert(translations[appState.lang].activationError); } }; }
+    function renderUserList() { document.getElementById('user-list').innerHTML = appState.users.map(u => `<li class="p-2 bg-slate-700/50 rounded flex justify-between items-center"><span>${u.username} ${u.role === 'admin' ? translations[appState.lang].usernameIsAdmin : ''}</span><div class="flex gap-2"><button data-id="${u.username}" class="edit-user-btn text-blue-400 hover:text-blue-300">${translations[appState.lang].editUser}</button>${u.username !== appState.loggedInUser.username ? `<button data-id="${u.username}" class="delete-user-btn text-red-400 hover:text-red-300">×</button>` : ''}</div></li>`).join(''); }
+    function setupUserManagementListeners() { const form = document.getElementById('userForm'); const list = document.getElementById('user-list'); const hiddenInput = document.getElementById('usernameInputHidden'); const nameInput = document.getElementById('userInputName'); const passInput = document.getElementById('userInputPassword'); const cancelBtn = document.getElementById('cancelEditUserBtn'); form.onsubmit = async (e) => { e.preventDefault(); const username = nameInput.value.trim(); const password = passInput.value.trim(); const originalUsername = hiddenInput.value; if(!username) return; if(originalUsername) { const updateData = {}; if(password) updateData.password = password; if(username !== originalUsername) { const existing = await db.users.get(username); if(existing) { alert('Username exists'); return; } const oldUser = await db.users.get(originalUsername); await db.users.add({ ...oldUser, ...updateData, username }); await db.users.delete(originalUsername); } else { await db.users.update(originalUsername, updateData); } } else { const existing = await db.users.get(username); if(existing) { alert('Username exists'); return; } if(!password) { alert('Password is required for new user'); return; } await db.users.add({ username, password, role: 'user' }); } await loadDataFromDB(); renderUserList(); form.reset(); hiddenInput.value = ''; cancelBtn.classList.add('hidden'); }; list.onclick = (e) => { const username = e.target.dataset.id; if(!username) return; if (e.target.classList.contains('edit-user-btn')) { const user = appState.users.find(u => u.username === username); hiddenInput.value = user.username; nameInput.value = user.username; passInput.placeholder = "Enter new password (optional)"; cancelBtn.classList.remove('hidden'); } if (e.target.classList.contains('delete-user-btn')) { if(confirm(appState.lang === 'fa' ? `آیا کاربر ${username} حذف شود؟` : `Delete user ${username}?`)) { db.users.delete(username).then(() => { loadDataFromDB().then(renderUserList); }); } } }; cancelBtn.onclick = () => { form.reset(); hiddenInput.value = ''; cancelBtn.classList.add('hidden'); }; }
+    async function backupData() { const allData = { projects: await db.projects.toArray(), peymankars: await db.peymankars.toArray(), projectTypes: await db.projectTypes.toArray(), stages: await db.stages.toArray(), payments: await db.payments.toArray(), settings: await db.settings.toArray(), users: await db.users.toArray() }; const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `karsaz_pro_backup_${new Date().toISOString().split('T')[0]}.json`; a.click(); URL.revokeObjectURL(url); }
+    async function restoreData() { const file = document.getElementById('restoreInput').files[0]; if (!file) { alert(appState.lang === 'fa' ? 'لطفا فایل را انتخاب کنید' : 'Please select a file'); return; } if (!confirm(appState.lang === 'fa' ? 'هشدار: تمام اطلاعات فعلی حذف خواهد شد. آیا مطمئن هستید؟' : 'WARNING: This will delete all current data. Are you sure?')) return; const reader = new FileReader(); reader.onload = async (event) => { try { const data = JSON.parse(event.target.result); await db.transaction('rw', db.tables, async () => { for (const tableName of Object.keys(data)) { if(db[tableName]) { await db[tableName].clear(); await db[tableName].bulkAdd(data[tableName]); } } }); alert(appState.lang === 'fa' ? 'بازیابی موفق بود. برنامه مجددا بارگذاری میشود.' : 'Restore successful. The application will now reload.'); logout(); } catch (error) { console.error(error); alert(appState.lang === 'fa' ? 'بازیابی ناموفق بود. فایل نامعتبر است.' : 'Restore failed. Invalid file format.'); } }; reader.readAsText(file); }
+    
+    init(); // Run the app
+});
+</script>
 </body>
 </html>
